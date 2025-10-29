@@ -1,7 +1,8 @@
 # -Ai-
 华为网络设备Ai巡检
-<img width="368" height="248" alt="屏幕截图 2025-10-29 151446" src="https://github.com/user-attachments/assets/254db482-322c-43c3-b167-eb25c2a91851" />
 
+
+<img width="368" height="248" alt="屏幕截图 2025-10-29 151446" src="https://github.com/user-attachments/assets/254db482-322c-43c3-b167-eb25c2a91851" />
 
 
 <img width="1080" height="435" alt="image" src="https://github.com/user-attachments/assets/4f309ba7-416e-4cc6-8fd2-cdeb937a16ab" />
