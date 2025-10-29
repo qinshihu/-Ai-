@@ -1,5 +1,20 @@
 # -Ai-
 华为网络设备Ai巡检
+
+[root@IT_Online ar-inspect]# tree
+.
+├── docker-compose.yml
+├── Dockerfile
+├── requirements.txt
+└── src
+    ├── app.py
+    ├── collector.py
+    ├── __init__.py
+    ├── inspect_tool.py
+    ├── progress.py
+    └── templates
+        └── index.html
+
 <img width="1080" height="435" alt="image" src="https://github.com/user-attachments/assets/4f309ba7-416e-4cc6-8fd2-cdeb937a16ab" />
 
 <img width="1495" height="820" alt="image" src="https://github.com/user-attachments/assets/f3a356c0-aa88-4048-ad52-c0cd6ac28435" />
