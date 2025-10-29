@@ -1,0 +1,14 @@
+services:
+  ar-inspect:
+    image: ar-inspect:1.0
+    container_name: ar-inspect
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - OLLAMA_URL=http://172.17.0.1:11434/api/generate
+      - ROUTER_HOST=192.168.31.199
+      - ROUTER_PORT=22
+      - ROUTER_USER=python
+      - ROUTER_PASS=Ai@#2323
+    network_mode: "host"

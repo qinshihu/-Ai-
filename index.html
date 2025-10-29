@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>华为网络设备智能巡检系统</title>
+    <style>
+        body { font-family: "Microsoft YaHei", Arial; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px #ddd; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h1 { color: #333; margin: 0; }
+        .help-link { color: #2196F3; text-decoration: none; font-size: 14px; }
+        .help-link:hover { text-decoration: underline; }
+        
+        #startBtn { padding: 10px 25px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        #startBtn:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .progress-box { margin-top: 20px; border: 1px solid #eee; padding: 15px; height: 450px; overflow-y: auto; font-size: 14px; line-height: 1.6; }
+        .status-start { color: #2196F3; }
+        .status-collect { color: #FF8F00; }
+        .status-ai { color: #9C27B0; }
+        .status-done { color: #4CAF50; font-weight: bold; }
+        .status-error { color: #F44336; font-weight: bold; }
+        
+        .cmd-item { margin-bottom: 8px; padding: 6px 10px; border-radius: 4px; background: #f9f9f9; }
+        .cmd-item.success { border-left: 3px solid #4CAF50; }
+        .cmd-item.info { border-left: 3px solid #2196F3; }
+        .cmd-item.warning { border-left: 3px solid #FFC107; }
+        .cmd-item.error { border-left: 3px solid #F44336; }
+        
+        .ai-report { margin-top: 15px; padding: 10px; background: #e8f5e9; border-radius: 4px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>华为网络设备智能巡检系统</h1>
+            <a href="https://mp.weixin.qq.com/s/hZh1_dY4O6mA7vRyeUTV_A" target="_blank" class="help-link">帮助手册</a>
+        </div>
+        
+        <button id="startBtn">开始巡检</button>
+        <div class="progress-box" id="progressDisplay">
+            <p class="status-idle">等待巡检开始...（点击上方按钮启动）</p>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const progressDisplay = document.getElementById('progressDisplay');
+        let eventSource = null;
+        let isInspecting = false;
+        let reconnectTimer = null;
+
+        window.addEventListener('DOMContentLoaded', initSSE);
+
+        window.addEventListener('beforeunload', function() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+            if (reconnectTimer) clearTimeout(reconnectTimer);
+        });
+
+        function initSSE() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+
+            console.log('【前端】初始化SSE连接...');
+            const sseUrl = `/stream?_t=${new Date().getTime()}`;
+            eventSource = new EventSource(sseUrl);
+
+            eventSource.onopen = function() {
+                console.log('【前端】SSE连接成功！');
+                addStyledMsg('✅ 实时进度已连接，点击"开始巡检"启动', 'status-idle success');
+                if (reconnectTimer) {
+                    clearTimeout(reconnectTimer);
+                    reconnectTimer = null;
+                }
+            };
+
+            eventSource.onmessage = function(event) {
+                console.log('【前端】收到进度消息：', event.data);
+                try {
+                    const { status, message } = JSON.parse(event.data);
+                    if (status === 'done') {
+                        renderAiReport(message);
+                    } else {
+                        addStyledMsg(message, `status-${status}`);
+                    }
+                    progressDisplay.scrollTop = progressDisplay.scrollHeight;
+
+                    if (status === 'start' || status === 'collect' || status === 'ai') {
+                        isInspecting = true;
+                        startBtn.disabled = true;
+                    } else if (status === 'done' || status === 'error') {
+                        isInspecting = false;
+                        startBtn.disabled = false;
+                    }
+
+                } catch (error) {
+                    console.error('【前端】解析消息失败：', error);
+                    addStyledMsg(`❌ 消息解析异常：${event.data.slice(0, 100)}...`, 'status-error error');
+                }
+            };
+
+            eventSource.onerror = function(error) {
+                console.error('【前端】SSE连接异常：', error);
+                addStyledMsg('❌ 进度连接断开，5秒后尝试重连...', 'status-error error');
+                
+                eventSource.close();
+                eventSource = null;
+
+                if (!reconnectTimer) {
+                    reconnectTimer = setTimeout(initSSE, 5000);
+                }
+            };
+        }
+
+        function addStyledMsg(content, className) {
+            const msgElement = document.createElement('div');
+            msgElement.className = `cmd-item ${className}`;
+            msgElement.textContent = content;
+            progressDisplay.appendChild(msgElement);
+        }
+
+        // 修改后的renderAiReport函数，增加格式容错处理
+        function renderAiReport(rawReport) {
+            let reportContent = rawReport;
+            try {
+                // 尝试解析JSON结构，提取message字段
+                const parsedReport = JSON.parse(rawReport);
+                reportContent = parsedReport.message || rawReport;
+            } catch (e) {
+                console.error("AI报告JSON解析失败，展示原始内容", e);
+            }
+            const reportElement = document.createElement('div');
+            reportElement.className = 'ai-report status-done';
+            reportElement.textContent = reportContent;
+            progressDisplay.appendChild(reportElement);
+        }
+
+        startBtn.addEventListener('click', function() {
+            if (isInspecting) return;
+            progressDisplay.innerHTML = '<div class="cmd-item status-start info">正在初始化巡检...（请稍候）</div>';
+            startBtn.disabled = true;
+            isInspecting = true;
+
+            fetch('/start_inspection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                cache: 'no-store',
+                timeout: 10000
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`请求失败：${response.status}`);
+                return response.json();
+            })
+            .catch(error => {
+                addStyledMsg(`❌ 启动巡检失败：${error.message}（请刷新页面重试）`, 'status-error error');
+                startBtn.disabled = false;
+                isInspecting = false;
+            });
+        });
+    </script>
+</body>
+</html>
