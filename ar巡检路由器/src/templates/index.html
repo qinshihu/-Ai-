@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AR1000 AI 巡检</title>
+  <style>
+    body{font-family:Arial;background:#f2f2f2;margin:40px}
+    #log{width:100%;height:500px;background:#000;color:#0f0;padding:10px;overflow-y:auto}
+    button{padding:10px 20px;font-size:16px}
+  </style>
+</head>
+<body>
+  <h2>华为 AR1000 智能巡检控制台</h2>
+  <button onclick="start()">开始巡检</button>
+  <pre id="log"></pre>
+  <script>
+    function start(){
+      document.getElementById('log').textContent='';
+      const sse=new EventSource('/stream');
+      sse.onmessage=e=>{
+        document.getElementById('log').textContent+=e.data+'\n';
+        if(e.data.includes('AI 巡检结束')) sse.close();
+      };
+    }
+  </script>
+</body>
+</html>
